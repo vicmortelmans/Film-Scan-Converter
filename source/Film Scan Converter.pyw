@@ -1401,9 +1401,8 @@ class GUI:
         self.filemenu.entryconfigure('Import...', state=tk.DISABLED)
         
         self.update_progress(20, 'Processing...') # Arbitrary progress display
-        if self.current_photo.proxy:
-            self.current_photo.load(True)
-            self.current_photo.process(True)
+        self.current_photo.load(True)
+        self.current_photo.process(True)
         self.update_progress(99, 'Exporting photo...')
         filename = self.destination_folder + str(self.current_photo).split('.')[0] # removes the file extension
         filename = filename + '.' + self.filetypes[self.filetype_Combo.current()]  # sets the file extension
@@ -1772,7 +1771,7 @@ class raw_processing:
         img = self.IMG
         if self.remove_dust:
             img = self.fill_dust(img, self.dust_mask)
-        img = self.add_frame(self.rotate(self.IMG)) # add decorative white frame
+        img = self.add_frame(self.rotate(img)) # add decorative white frame
         match filetype:
             case 'JPG':
                 quality = [cv2.IMWRITE_JPEG_QUALITY, self.jpg_quality]
@@ -2006,9 +2005,7 @@ class raw_processing:
 
         max_array = np.ones_like(black_offsets)
         white_point = np.percentile(img[sample], self.white_point_percentile, (0,1))
-        white_multipliers = np.divide(65535 + self.white_point / 100 * sensitivity * 65535, white_point, out=max_array, where=white_point>0) # division, but ignore divide by zero
-        print(black_offsets, black_point)
-        print(white_point, white_multipliers)
+        white_multipliers = np.divide(65535 + self.white_point / 100 * sensitivity * 65535, white_point, out=max_array, where=white_point>0) # division, but ignore divide by zero or negative
         img = np.multiply(img, white_multipliers) # Scales the white percentile to 65535
         return img
     
