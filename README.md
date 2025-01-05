@@ -10,7 +10,8 @@ If you want to run it on a different platform (e.g. MacOS) or you have security 
 # Scanning Best Practices
 Having consistent, high quality scans will go a long way to improve the effectiveness of the program. For best results, ensure the following during scanning:
 1. Use a film holder to hold the film flat and undistorted during scanning.
-2. Use a reasonably accurate mask around the photo. Some film holders have notches or cutouts around the film frame; masking tape can be used to cover up the notches and square off the edges.
+2. Use a reasonably accurate mask around the photo. Some film holders have notches or cutouts around the film frame; masking tape can be used to cover up the notches and square off the edges.  
+_Note: It is possible to scan without a mask, however the program may have trouble distinguishing the edge of the photo from the film base, especially if the photo is underexposed._
 3. Use a blower brush or equivalent to remove dust from the film before scanning.
 4. Fill the image frame as much as possible with the desired photo.
 5. Use a high CRI light source as a backlight.
