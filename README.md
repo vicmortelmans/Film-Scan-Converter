@@ -1,5 +1,6 @@
 # Film Scan Converter
-A standalone application used for processing RAW film scans from a digital camera into final images
+A standalone application used for processing RAW film scans from a digital camera into final images  
+![image](https://github.com/user-attachments/assets/ed4f2e61-0fa0-404f-bdea-c34ea1925662)
 
 # Installation
 If you do not have Python installed, you can simply download and run the Windows executable below:  
@@ -26,7 +27,7 @@ An ideal film scan is shown below:
 Example film base scan:
 ![image](https://github.com/user-attachments/assets/667d2393-8ebf-469e-9b2d-888913c7b043)
 
-# How to Use
+# How to Use It
 ## Batch Processing
 This application enables you to import multiple RAW scans (most RAW image formats supported), and process them all simultaneously. Each photo's settings can either be synced with global settings, or have settings independent from all the other photos. This is useful when all the photos are scanned in a consistent manner, or you want to dial in the same "look" for multiple photos.
 
