@@ -6,7 +6,9 @@ A standalone application used for processing RAW film scans from a digital camer
 If you do not have Python installed, you can simply download and run the Windows executable below:  
 [Download Link](https://www.dropbox.com/scl/fi/zq8qo2jtjipaxj235cg45/Film-Scan-Converter.exe?rlkey=qa9fkiy7h1svsi9ixnrz83pg5&e=2&st=43ddm53m&dl=0)
 
-If you want to run it on a different platform (e.g. MacOS) or you have security concerns around running a random EXE you downloaded from the internet, you will need to [install Python 3.10 or newer](https://www.python.org/downloads/), download the source files, install the dependant libraries, and run the "Film Scan Converter.pyw" file with Python.
+It's not a virus, but Windows might warn you about running an unsigned app. Do your due diligence and scan the file using your preferred anti-malware program before trying to run it.
+
+If you want to run it on a different platform (e.g. MacOS) or you still have security concerns around running a random EXE you downloaded from the internet, you will need to [install Python 3.10 or newer](https://www.python.org/downloads/), download the source files, install the dependant libraries, and run the "Film Scan Converter.pyw" file with Python.
 
 # Scanning Best Practices
 Having consistent, high quality scans will go a long way to maximize the effectiveness of this application. For best results, ensure the following during scanning:
