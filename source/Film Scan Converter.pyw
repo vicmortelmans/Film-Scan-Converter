@@ -2292,9 +2292,9 @@ class ScrollFrame:
 
 if __name__ == '__main__':
     # Main function
+    multiprocessing.freeze_support()
     try:
         ctypes.windll.shcore.SetProcessDpiAwareness(1)
-        multiprocessing.freeze_support()
 
         def resource_path(relative_path):    
             try:       
