@@ -2,13 +2,28 @@
 A standalone application used for processing RAW film scans from a digital camera into final images  
 ![image](https://github.com/user-attachments/assets/ed4f2e61-0fa0-404f-bdea-c34ea1925662)
 
-# Installation
+# Installation using prebuilt binaries
 If you do not have Python installed, you can simply download and run the Windows executable below:  
 [Download Link](https://www.dropbox.com/scl/fi/zq8qo2jtjipaxj235cg45/Film-Scan-Converter.exe?rlkey=qa9fkiy7h1svsi9ixnrz83pg5&e=2&st=43ddm53m&dl=0)
 
 It's not a virus, but Windows might warn you about running an unsigned app. Do your due diligence and scan the file using your preferred anti-malware program before trying to run it.
 
-If you want to run it on a different platform (e.g. MacOS) or you still have security concerns around running a random EXE you downloaded from the internet, you will need to [install Python 3.10 or newer](https://www.python.org/downloads/), download the source files, install the dependant libraries, and run the "Film Scan Converter.pyw" file with Python.
+If you want to run it on a different platform (e.g. MacOS) or you still have security concerns around running a random EXE you downloaded from the internet, follow the manual installation instructions below.
+
+# Manual Installation
+
+1. Install Python 3.10 or newer from [python.org](https://www.python.org/downloads/).
+2. Download the source files from the repository.
+> This can be done using the "Code" -> "Download ZIP" option on the repository page or by cloning the repository using Git.
+3. Open the `source` folder in the terminal.
+4. Install the required libraries by running the following command in the terminal:
+```bash
+    pip install -r requirements.txt
+```
+5. Run the application by executing the following command in the terminal:
+```bash
+    python "Film Scan Converter.pyw"
+```
 
 # Scanning Best Practices
 Having consistent, high quality scans will go a long way to maximize the effectiveness of this application. For best results, ensure the following during scanning:
