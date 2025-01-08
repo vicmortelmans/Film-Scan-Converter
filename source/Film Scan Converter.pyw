@@ -57,7 +57,11 @@ class GUI:
 
         # Building the GUI
         master.title('Film Scan Converter')
-        master.state('zoomed')
+        try:
+            master.state('zoomed')
+        except: # Exception for linux
+            m = master.maxsize()
+            master.geometry('{}x{}+0+0'.format(*m))
         master.geometry('800x500')
         validation = master.register(self.validate)
 
