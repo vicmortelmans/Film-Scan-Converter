@@ -22,8 +22,8 @@ class GUI:
         self.filetypes = ['TIFF', 'PNG', 'JPG'] # Export File Types
         self.destination_folder = ''
         self.allowable_image_filetypes = [
-            ('RAW files', '*.DNG *.CR2 *.CR3 *.NEF *.ARW *.RAF *.ERF *.NEF *.GPR *.RAW *.CRW'),
-            ('Image files', '*.PNG *.JPG *.JPEG *.BMP *.TIFF *.TIF')
+            ('RAW files', '*.DNG *.CR2 *.CR3 *.NEF *.ARW *.RAF *.ERF *.GPR *.RAW *.CRW *.dng *.cr2 *.cr3 *.nef *.arw *.raf *.erf *.grp *.raw *.crw'),
+            ('Image files', '*.PNG *.JPG *.JPEG *.BMP *.TIFF *.TIF *.png *.jpg *.jpeg *.bmp *.tiff *.tif')
             ]
         self.header_style = ('Segoe UI', 10, 'normal') # Defines font for section headers
         self.wb_picker = False
