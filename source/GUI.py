@@ -817,8 +817,8 @@ class GUI:
             if self.photo_process_Combo.current() == 4: # Only display when full preview is selected
                 try: 
                     self.master.after_cancel(self.start_full_res)
-                except Exception as e: 
-                     logger.exception(f"Exception: {e}")
+                except Exception as _: 
+                    pass
                 finally: 
                     self.start_full_res = self.master.after(500, update_full_res) # waits for 0.5 s of inactivity before processing
 
@@ -1304,14 +1304,14 @@ class GUI:
                             exp_shift = 2 ** RawProcessing.exp_shift,
                             half_size = True # take the average of 4 pixels to reduce resolution
                             )
-                except Exception as e:
-                    logger.exception(f"Exception: {e}")
+                except Exception as _:
                     try:
                         raw_img = cv2.imread(filename) # if fails, reads as normal image
                         if type(raw_img) is not np.ndarray:
-                            raise Exception
+                            raise Exception(f'{filename} failed to load!')
                         raw_img = raw_img[:,:,::-1] # converts BGR to RGB
                     except Exception as e: # If fails again, generate error message
+                        logger.error("The selected image could not be read.")
                         logger.exception(f"Exception: {e}") 
                         messagebox.showerror('Error: File Read Error','The selected image could not be read.')
                         return

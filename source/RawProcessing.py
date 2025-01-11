@@ -118,12 +118,11 @@ class RawProcessing:
                     half_size = not full_res # take the average of 4 pixels to reduce resolution and computational requirements
                     )
                 self.colour_desc = raw.color_desc.decode('utf-8') # get the bayer pattern
-        except Exception as e:
-            logger.exception(f"Exception: {e}")
+        except Exception as _:
             try:
                 self.RAW_IMG = cv2.imread(self.file_directory) # if fails, reads as normal image
                 if type(self.RAW_IMG) is not np.ndarray:
-                    raise Exception
+                    raise Exception(f'{self.file_directory} failed to load!')
             except Exception as e:
                 logger.exception(f"Exception: {e}") # If fails again, set error attributes
                 self.reject = True
