@@ -12,6 +12,12 @@ import sys
 import matplotlib.colors
 import psutil
 import platform
+import logging 
+
+
+logger = logging.getLogger(__name__)
+FORMAT = '%(asctime)s:::%(levelname)s:::%(message)s'
+logging.basicConfig(filename='myapp.log', level=logging.DEBUG, format=FORMAT)
 
 class GUI:
     def __init__(self, master):
@@ -59,7 +65,7 @@ class GUI:
         master.title('Film Scan Converter')
         try:
             master.state('zoomed')
-        except: # Exception for linux
+        except Exception as e: # Exception for linux
             m = master.maxsize()
             master.geometry('{}x{}+0+0'.format(*m))
         master.geometry('800x500')
@@ -400,8 +406,8 @@ class GUI:
         self.set_disable_buttons()
         try:
             params_dict = np.load('config.npy', allow_pickle=True).item()
-        except:
-            pass
+        except Exception as e:
+            logger.exception(f"Exception: {e}")
         else:
             for object in [self, raw_processing]:
                 for attr in object.advanced_attrs:
@@ -611,7 +617,8 @@ class GUI:
 
         try:
             wb_lbl = 'White Balance Multipliers (' + self.current_photo.colour_desc + '):'
-        except:
+        except Exception as e:
+            logger.exception(f"Exception: {e}")
             wb_lbl = 'White Balance Multipliers:'
         wb_mult = EntryLabel(import_settings, wb_lbl, 0, 4, raw_processing.wb_mult, tk.DoubleVar, 0.1, width=4)
         set_wb()
@@ -682,7 +689,7 @@ class GUI:
     def import_photos(self):
         # Import photos: opens dialog to load files, and intializes GUI
         if len(self.photos) > 0:
-            if self.ask_save_settings() == None:
+            if self.ask_save_settings() is None:
                 return
             
         if hasattr(self, 'export_thread') and self.export_thread.is_alive():
@@ -777,10 +784,10 @@ class GUI:
         if len(self.photos) == 0:
             return
         try:
-            if self.current_photo.get_IMG() == None:
+            if self.current_photo.get_IMG() is None:
                 raise Exception
         except Exception as e:
-            print(e)
+            logger.exception(f"Exception: {e}")
             self.outputFrame.grid_forget()
             self.read_error_lbl.grid(row=0, column=1, sticky='EW') # displays error message when image cannot be loaded
             return
@@ -805,9 +812,12 @@ class GUI:
         if full_res:
             # Generates full resolution image in the background
             if self.photo_process_Combo.current() == 4: # Only display when full preview is selected
-                try: root.after_cancel(self.start_full_res)
-                except: pass
-                finally: self.start_full_res = root.after(500, update_full_res) # waits for 0.5 s of inactivity before processing
+                try: 
+                    root.after_cancel(self.start_full_res)
+                except Exception as e: 
+                     logger.exception(f"Exception: {e}")
+                finally: 
+                    self.start_full_res = root.after(500, update_full_res) # waits for 0.5 s of inactivity before processing
 
     def resize_IMG(self, img):  
         # Resizes the displayed image based on maximum allowable dimensions, while maintaining aspect ratio
@@ -820,8 +830,8 @@ class GUI:
         # Attempts to resize the images if the resize event has not been called for 100 ms
         try:
             root.after_cancel(self.resize)
-        except:
-            pass
+        except Exception as e: 
+                     logger.exception(f"Exception: {e}")
         finally:
             self.resize = root.after(100, self.resize_UI)
     
@@ -1262,10 +1272,11 @@ class GUI:
             case 0: # set rgb from colour picker
                 try:
                     colour = self.current_photo.base_rgb
-                except:
+                except Exception as e: 
+                    logger.exception(f"Exception: {e}")
                     colour = None
                 rgb, _ = colorchooser.askcolor(colour, title='Enter Film Base RGB')
-                if rgb == None:
+                if rgb is None:
                     return
             case 1: # pick colour from RAW image
                 rgb = self.current_photo.base_rgb
@@ -1273,7 +1284,8 @@ class GUI:
                 filename = filedialog.askopenfile(title='Select Blank Film Scan', filetypes=self.allowable_image_filetypes)
                 try:
                     filename = filename.name
-                except:
+                except Exception as e: 
+                    logger.exception(f"Exception: {e}")
                     return
                 try:
                     with rawpy.imread(filename) as raw: # tries to read as raw file
@@ -1289,13 +1301,15 @@ class GUI:
                             exp_shift = 2 ** raw_processing.exp_shift,
                             half_size = True # take the average of 4 pixels to reduce resolution
                             )
-                except:
+                except Exception as e:
+                    logger.exception(f"Exception: {e}")
                     try:
                         raw_img = cv2.imread(filename) # if fails, reads as normal image
-                        if type(raw_img) != np.ndarray:
+                        if type(raw_img) is not np.ndarray:
                             raise Exception
                         raw_img = raw_img[:,:,::-1] # converts BGR to RGB
-                    except: # If fails again, generate error message
+                    except Exception as e: # If fails again, generate error message
+                        logger.exception(f"Exception: {e}") 
                         messagebox.showerror('Error: File Read Error','The selected image could not be read.')
                         return
                 brightness = np.sum(raw_img.astype(np.uint16), 2)
@@ -1492,8 +1506,8 @@ class GUI:
         # Stop the export
         try:
             self.terminate.set()
-        except:
-            pass
+        except Exception as e:
+            logger.exception(f"Exception: {e}") 
     
     # Defines how to show and hide the progress bar
     def show_progress(self, message=''):
@@ -1521,14 +1535,14 @@ class GUI:
     def on_closing(self):
         # Behaviour/cleanup at closing
         if len(self.photos) > 0:
-            if self.ask_save_settings() == None: # if "Cancel" is pressed, do nothing
+            if self.ask_save_settings() is None: # if "Cancel" is pressed, do nothing
                 return
         if hasattr(self, 'export_thread') and self.export_thread.is_alive(): # check if the export thread is still alive
             if messagebox.askyesno(title='Export in Progress', icon='warning', message='Export is still in progress. Do you really want to quit?', default='no'):
                 try:
                     self.pool.terminate()
-                except:
-                    pass
+                except Exception as e:
+                    logger.exception(f"Exception: {e}") 
             else:
                 return
         root.destroy() # quit program
@@ -1562,10 +1576,9 @@ def load_photo(photo):
         try:
             photo.load() # load RAW file into memory
         except Exception as e:
-            continue
+            logger.exception(f"Exception: {e}")
         else:
             return photo
-    print(e)
 
 def export(inputs):
     photo, filename, terminate = inputs
@@ -1629,7 +1642,8 @@ class raw_processing:
         try: # to read in the parameters from a saved file
             directory = self.file_directory.split('.')[0] + '.npy'
             params_dict = np.load(directory, allow_pickle=True).item()
-        except: # file does not exist
+        except Exception as e:# file does not exist
+            logger.exception(f"Exception: {e}")
             for attr in self.processing_parameters:
                 if attr in window.global_settings:
                     setattr(self, attr, window.global_settings[attr]) # Initializes every parameter based on default value
@@ -1664,12 +1678,14 @@ class raw_processing:
                     half_size = not full_res # take the average of 4 pixels to reduce resolution and computational requirements
                     )
                 self.colour_desc = raw.color_desc.decode('utf-8') # get the bayer pattern
-        except:
+        except Exception as e:
+            logger.exception(f"Exception: {e}")
             try:
                 self.RAW_IMG = cv2.imread(self.file_directory) # if fails, reads as normal image
-                if type(self.RAW_IMG) != np.ndarray:
+                if type(self.RAW_IMG) is not np.ndarray:
                     raise Exception
-            except: # If fails again, set error attributes
+            except Exception as e:
+                logger.exception(f"Exception: {e}") # If fails again, set error attributes
                 self.reject = True
                 self.FileReadError = True
                 return
@@ -2201,7 +2217,7 @@ class raw_processing:
         # Returns the size of the largest numpy arrays
         total = 0
         for attr in self.__dict__.keys():
-            if type(getattr(self, attr)) == np.ndarray:
+            if type(getattr(self, attr)) is np.ndarray:
                 total += getattr(self, attr).nbytes
         return total
     
@@ -2296,6 +2312,7 @@ class ScrollFrame:
 
 if __name__ == '__main__':
     # Main function
+    
     multiprocessing.freeze_support()
     try:
         ctypes.windll.shcore.SetProcessDpiAwareness(1)
@@ -2313,7 +2330,8 @@ if __name__ == '__main__':
             datafile = os.path.join(os.path.dirname(__file__), datafile)
         else:
             datafile = os.path.join(sys.prefix, datafile)
-    except:
+    except Exception as e:
+        logger.exception(f"Exception: {e}")
         root = tk.Tk()
     else:
         root = tk.Tk()
