@@ -36,7 +36,7 @@ class RawProcessing:
     advanced_attrs = ('max_proxy_size','jpg_quality','tiff_compression','dm_alg','colour_space','exp_shift','fbdd_nr','raw_gamma','use_camera_wb','wb_mult', 'black_point_percentile', 'white_point_percentile','ignore_border','dust_threshold','max_dust_area','dust_iter')
     processing_parameters = ('dark_threshold','light_threshold','border_crop','flip','rotation','film_type','white_point','black_point','gamma','shadows','highlights','temp','tint','sat','reject','base_detect','base_rgb', 'remove_dust')
 
-    def __init__(self, file_directory, window):
+    def __init__(self, file_directory, default_settings, global_settings):
         # file_directory: the name of the RAW file to be processed
         # Instance Variables (Only for specific photo)
         self.processed = False # flag for whether the image has been processed yet
@@ -46,7 +46,6 @@ class RawProcessing:
         self.pick_wb = False # flag to pick white balance from a set of pixel coordinates
         self.file_directory = file_directory
         self.colour_desc = None # RAW bayer colour description
-        self.window = window
         # initializing raw processing parameters
         try: # to read in the parameters from a saved file
             directory = self.file_directory.split('.')[0] + '.npy'
@@ -54,8 +53,8 @@ class RawProcessing:
         except Exception as e:# file does not exist
             logger.exception(f"Exception: {e}")
             for attr in self.processing_parameters:
-                if attr in window.global_settings:
-                    setattr(self, attr, window.global_settings[attr]) # Initializes every parameter based on default value
+                if attr in global_settings:
+                    setattr(self, attr, global_settings[attr]) # Initializes every parameter based on default value
                 else:
                     setattr(self, attr, 0) # otherwise set to 0
             self.use_global_settings = True # tells GUI class whether to overwrite current photo settings with global setting
@@ -63,43 +62,12 @@ class RawProcessing:
             for attr in self.processing_parameters:
                 if attr in params_dict:
                     setattr(self, attr, params_dict[attr]) # Initializes every parameter with imported parameters
-                elif attr in window.default_settings:
-                    setattr(self, attr, window.default_settings[attr]) # if parameter doesn't exist, use default
+                elif attr in default_settings:
+                    setattr(self, attr, default_settings[attr]) # if parameter doesn't exist, use default
                 else:
                     setattr(self, attr, 0) # otherwise set to 0
 
             self.use_global_settings = False # tells GUI class whether to overwrite current photo settings with global setting
-
-    def load_photo(self,photo):
-        for _ in range(5):
-            try:
-                photo.load() # load RAW file into memory
-            except Exception as e:
-                logger.exception(f"Exception: {e}")
-            else:
-                return photo
-
-    def export(self,inputs):
-        photo, filename, terminate = inputs
-        for _ in range(5):
-            try:
-                if terminate.is_set():
-                    return
-                photo.load(True)
-                if photo.FileReadError:
-                    raise Exception('File could not be read')
-                if terminate.is_set():
-                    return
-                photo.process(True) # process photo in full quality
-            except Exception as e:
-                error = e
-            else:
-                if terminate.is_set():
-                    return
-                photo.export(filename)
-                photo.clear_memory()
-                return False
-        return error
     
     def load(self, full_res=False):
         # Loads the RAW file into memory

@@ -712,7 +712,7 @@ class GUI:
         
         self.update_progress(20, 'Initializing ' + str(total) + ' photos...')
         for i, filename in enumerate(filenames):
-            photo = RawProcessing(file_directory=filename, window=self)
+            photo = RawProcessing(file_directory=filename, default_settings=self.default_settings, global_settings=self.global_settings)
             self.photos.append(photo)
             photo_names.append(str(i + 1) + '. ' + str(photo))
         
@@ -734,15 +734,13 @@ class GUI:
     
     def load_IMG(self, event=None):
         # Loading new image into GUI, loads other images in background
-        def get_async_result(results, pool):
-            attrs = ['RAW_IMG','memory_alloc','reject','FileReadError']
-            for i, result in results:
-                new_photo = result.get()
-                for attr in attrs:
-                    if hasattr(new_photo, attr):
-                        setattr(self.photos[i], attr, getattr(new_photo, attr))
-                self.in_progress.remove(i)
-            pool.close()
+        def load_async(photo, i):
+            # Threading function to load photo in background
+            # photo: RawProcessing object
+            # i: the index of the photo in self.photos
+            photo.load()
+            self.in_progress.remove(i)
+
         if len(self.photos) == 0:
             return
         photo_index = self.photoCombo.current()
@@ -756,17 +754,12 @@ class GUI:
         self.update_IMG()
 
         # conservatively load extra images in background to speed up switching, while saving memory
-        results = []
-        pool = multiprocessing.Pool(4)
         for i, photo in enumerate(self.photos):
             if (abs(i - photo_index) <= self.preload) and not hasattr(photo, 'RAW_IMG') and i not in self.in_progress: # preload photos in buffer ahead or behind of the currently selected one
-                result = pool.apply_async(RawProcessing.load_photo, (photo,))
-                results.append((i, result))
+                threading.Thread(target=load_async, args=(photo, i), daemon=True).start()
                 self.in_progress.add(i) # keeps track of photos in progress
             elif (abs(i - photo_index) > self.preload) and hasattr(photo, 'RAW_IMG'): # delete photos outside of buffer
                 photo.clear_memory()
-        
-        threading.Thread(target=get_async_result, args=(results, pool), daemon=True).start() # retrieve images from multiprocessing when done
 
         self.set_disable_buttons()
     
@@ -1450,7 +1443,6 @@ class GUI:
         inputs = []
         allocated = 0 # sum of total allocated memory
         has_alloc = 0 # number of photos in which the memory allocation has been calculated
-        
         with multiprocessing.Manager() as manager:
             self.terminate = manager.Event() # flag to abort export and safely close processes
 
@@ -1482,12 +1474,13 @@ class GUI:
             with multiprocessing.Pool(processes) as self.pool:
                 i = 1
                 errors = []
-                for error in self.pool.imap(RawProcessing.export, inputs):
+                for result in self.pool.imap(self.export_async, inputs):
                     if self.terminate.is_set():
                         self.pool.terminate()
                         break
-                    if error:
-                        errors.append(error) # keeps track of any errors raised
+                    if result:
+                        errors.append(result) # keeps track of any errors raised
+                        logger.exception(f"Exception: {result}") 
                     update_message = 'Exported ' + str(i) + ' of ' + str(len(inputs)) + ' photos.'
                     self.update_progress(i / len(inputs) * 80 + 19.99, update_message) # update progress display
                     i += 1
@@ -1572,3 +1565,25 @@ class GUI:
     def _from_rgb(rgb):
         # translates an rgb tuple of int to a tkinter friendly color code
         return '#%02x%02x%02x' % rgb
+    
+    @staticmethod
+    def export_async(inputs):
+        photo, filename, terminate = inputs
+        for _ in range(5):
+            try:
+                if terminate.is_set():
+                    return
+                if photo.FileReadError:
+                    raise Exception('File could not be read')
+                if terminate.is_set():
+                    return
+                photo.process(True) # process photo in full quality
+            except Exception as e:
+                error = e
+            else:
+                if terminate.is_set():
+                    return
+                photo.export(filename)
+                photo.clear_memory()
+                return False
+        return error
