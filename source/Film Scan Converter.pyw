@@ -1,18 +1,12 @@
-import rawpy
-import cv2
-import numpy as np
 import tkinter as tk
-from PIL import Image
 import multiprocessing
 import ctypes
 import os
 import sys
-import matplotlib.colors
 import logging 
 
 #Custom classes
 from GUI import GUI
-
 
 logger = logging.getLogger(__name__)
 FORMAT = '%(asctime)s:::%(levelname)s:::%(message)s'
