@@ -1568,11 +1568,16 @@ class GUI:
     
     @staticmethod
     def export_async(inputs):
+        # used by multiprocessing
         photo, filename, terminate = inputs
+        # photo: RawProcessing object
+        # filename: the directory and filename to be saved as
+        # terminate: multiprocessing.Event flag to tell the process to stop
         for _ in range(5):
             try:
                 if terminate.is_set():
                     return
+                photo.load(True)
                 if photo.FileReadError:
                     raise Exception('File could not be read')
                 if terminate.is_set():
