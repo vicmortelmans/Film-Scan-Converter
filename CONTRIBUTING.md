@@ -15,7 +15,8 @@ If you're looking for somewhere to start, here are a few places where you can he
 - Optimize code readability/performance
 
 ## Suggesting New Features
-If you have an idea for how to improve the image quality, the GUI, the code, or anything really, [start a new discussion](https://github.com/kaimonmok/Film-Scan-Converter/discussions/new?category=ideas) on it if one hasn't already been started. This will make a space for the community to provide feedback on your suggestion.
+- Check that somebody else has not already suggested the same feature in [Issues](https://github.com/kaimonmok/Film-Scan-Converter/issues).
+- Suggest new features to add by [opening an issue](https://github.com/kaimonmok/Film-Scan-Converter/issues/new), and include a title and description that clearly articulates what you think this new feature should do, and how it may be implemented.
 
 ## Reporting Bugs
 - Check that the bug has not already been reported in [Issues](https://github.com/kaimonmok/Film-Scan-Converter/issues).
