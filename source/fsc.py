@@ -27,7 +27,7 @@ def replace_extension_with_jpg(file_path):
     return f"{base_name}.jpg"
 
 
-def main(filename):
+def main(filename, mode="color"):
     # Check if the file exists
     if not os.path.isfile(filename):
         print(f"Error: The file '{filename}' does not exist.")
@@ -35,7 +35,7 @@ def main(filename):
 
     # Prepare settings
     default_settings = dict(
-        film_type = 1,
+        film_type = 1 if mode == "color" else 0,
         dark_threshold = 25,
         light_threshold = 100,
         border_crop = 1,
@@ -63,10 +63,21 @@ def main(filename):
 
 if __name__ == "__main__":
     # Set up command-line argument parsing
-    parser = argparse.ArgumentParser(description="Process a file.")
+    parser = argparse.ArgumentParser(description="Process a negative film scan with optional color modes.")
     parser.add_argument("filename", help="Path to the file to process")
+    
+    # Add mutually exclusive arguments for color and grayscale
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("-c", "--color", action="store_true", help="Process the file in color mode (default)")
+    group.add_argument("-g", "--grayscale", action="store_true", help="Process the file in grayscale mode")
+
     args = parser.parse_args()
 
-    # Run the main function with the provided filename
-    main(args.filename)
+    # Determine the mode
+    if args.grayscale:
+        mode = "grayscale"
+    else:
+        mode = "color"
 
+    # Run the main function with the provided arguments
+    main(args.filename, mode)
