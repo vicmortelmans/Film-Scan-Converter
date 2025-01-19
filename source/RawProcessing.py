@@ -20,11 +20,11 @@ class RawProcessing:
     frame = 0 # adds white frame to final photo
     jpg_quality = 90 # from 0-100
     tiff_compression = 8 # defines the tiff compression algorithm
-    dm_alg = 2 # demosaicing algorithm
-    colour_space = 7 # output colour space after demosaicing
+    dm_alg = 0 # demosaicing algorithm
+    colour_space = 0 # output colour space after demosaicing
     exp_shift = 3
     fbdd_nr = 0 # noise reduction on demosaic
-    raw_gamma = (2.222,4.5) # (power, slope) for RAW image
+    raw_gamma = (1.0,1.0) # (power, slope) for RAW image
     use_camera_wb = True
     wb_mult = [1, 1, 1, 1]
     black_point_percentile = 0 # sets the black point
@@ -194,7 +194,7 @@ class RawProcessing:
         # filename is a string containing the directory and file name with the file extension
         if not hasattr(self, 'IMG'):
             return
-        filetype = filename.split('.')[-1]
+        filetype = filename.split('.')[-1].upper()
         img = self.IMG
         if self.remove_dust:
             img = self.fill_dust(img, self.dust_mask)
