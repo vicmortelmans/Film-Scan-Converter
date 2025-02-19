@@ -28,7 +28,7 @@ class RawProcessing:
     use_camera_wb = True
     wb_mult = [1, 1, 1, 1]
     black_point_percentile = 0 # sets the black point
-    white_point_percentile = 99 # sets the default white balance as a percentile of the brightest pixels
+    white_point_percentile = 99 # sets the default white balance as a percentile of the brightest pixels — customized
     ignore_border = (1, 1) # ignores the border for calculation of histogram EQ
     dust_threshold = 10
     max_dust_area = 15
