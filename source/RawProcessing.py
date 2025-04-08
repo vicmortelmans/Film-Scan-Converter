@@ -36,15 +36,22 @@ class RawProcessing:
     advanced_attrs = ('max_proxy_size','jpg_quality','tiff_compression','dm_alg','colour_space','exp_shift','fbdd_nr','raw_gamma','use_camera_wb','wb_mult', 'black_point_percentile', 'white_point_percentile','ignore_border','dust_threshold','max_dust_area','dust_iter')
     processing_parameters = ('dark_threshold','light_threshold','border_crop','flip','rotation','film_type','white_point','black_point','gamma','shadows','highlights','temp','tint','sat','reject','base_detect','base_rgb', 'remove_dust')
 
-    def __init__(self, file_directory, default_settings, global_settings):
+    def __init__(self, file_directory, default_settings, global_settings, file_directory_red=None, file_directory_green=None, file_directory_blue=None):
         # file_directory: the name of the RAW file to be processed
+        # in case of separate RAW files for R, G, B, file_directory is None and the files are optional arguments
         # Instance Variables (Only for specific photo)
         self.processed = False # flag for whether the image has been processed yet
         self.proxy = False # Flag to keep track of whether or not proxies are being used
         self.FileReadError = False # flag for if the class could not read the RAW file
         self.active_processes = 0 # lets object know how many processes are currently processing the photo
         self.pick_wb = False # flag to pick white balance from a set of pixel coordinates
-        self.file_directory = file_directory
+        if file_directory_red:
+            self.file_directory = file_directory_red  # used for output filename
+        else:
+            self.file_directory = file_directory
+        self.file_directory_red = file_directory_red
+        self.file_directory_green = file_directory_green
+        self.file_directory_blue = file_directory_blue
         self.colour_desc = None # RAW bayer colour description
         # initializing raw processing parameters
         try: # to read in the parameters from a saved file
@@ -86,6 +93,40 @@ class RawProcessing:
                     half_size = not full_res # take the average of 4 pixels to reduce resolution and computational requirements
                     )
                 self.colour_desc = raw.color_desc.decode('utf-8') # get the bayer pattern
+            if self.file_directory_red:
+                logger.info("Loading separate files for green and blue")
+                with rawpy.imread(self.file_directory_green) as raw_green, \
+                     rawpy.imread(self.file_directory_blue) as raw_blue:
+                    
+                    # Convert to 16-bit RGB (or use postprocess options to fine-tune)
+                    rgb_green = raw_green.postprocess(
+                        output_bps = 16, # output 16-bit image
+                        use_camera_wb = self.use_camera_wb, # Screws up the colours if not used
+                        user_wb = self.wb_mult, # wb multipliers
+                        demosaic_algorithm = rawpy.DemosaicAlgorithm(self.dm_alg),
+                        output_color = rawpy.ColorSpace(self.colour_space),
+                        gamma = self.raw_gamma,
+                        auto_bright_thr = 0, # no clipping of highlights
+                        exp_preserve_highlights = 1,
+                        exp_shift = 2 ** self.exp_shift,
+                        half_size = not full_res # take the average of 4 pixels to reduce resolution and computational requirements
+                        )
+                    rgb_blue = raw_blue.postprocess(
+                        output_bps = 16, # output 16-bit image
+                        use_camera_wb = self.use_camera_wb, # Screws up the colours if not used
+                        user_wb = self.wb_mult, # wb multipliers
+                        demosaic_algorithm = rawpy.DemosaicAlgorithm(self.dm_alg),
+                        output_color = rawpy.ColorSpace(self.colour_space),
+                        gamma = self.raw_gamma,
+                        auto_bright_thr = 0, # no clipping of highlights
+                        exp_preserve_highlights = 1,
+                        exp_shift = 2 ** self.exp_shift,
+                        half_size = not full_res # take the average of 4 pixels to reduce resolution and computational requirements
+                        )
+
+                    # Create a new RGB image
+                    self.RAW_IMG[:, :, 1] = rgb_green[:, :, 1] # Green channel
+                    self.RAW_IMG[:, :, 2] = rgb_blue[:, :, 2]  # Blue channel
         except Exception as _:
             try:
                 self.RAW_IMG = cv2.imread(self.file_directory) # if fails, reads as normal image
