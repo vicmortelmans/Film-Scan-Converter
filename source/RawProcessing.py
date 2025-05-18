@@ -4,6 +4,7 @@ import numpy as np
 from PIL import Image
 import matplotlib.colors
 import os 
+import tifffile
 
 import logging
 
@@ -53,6 +54,7 @@ class RawProcessing:
         self.file_directory_green = file_directory_green
         self.file_directory_blue = file_directory_blue
         self.colour_desc = None # RAW bayer colour description
+        self.vignetting_reference_image = tifffile.imread(f"{os.path.dirname(os.path.abspath(__file__))}/vignetting.tiff")
         # initializing raw processing parameters
         try: # to read in the parameters from a saved file
             directory = self.file_directory.split('.')[0] + '.npy'
@@ -301,6 +303,8 @@ class RawProcessing:
                 img = self.slide_processing(img)
             case 3:
                 img = self.crop_only(img)
+            case 4:
+                img = self.scientific(img)
 
         self.active_processes -= 1
         if recent_only and (self.active_processes > 0):
@@ -320,6 +324,12 @@ class RawProcessing:
         return img
 
     def colour_negative_processing(self, img):
+        img = img / self.vignetting_reference_image * 65535  # order is important!
+        max_vals = np.max(img, axis=(0, 1))  # maybe higher than 65535
+        scale = np.where(max_vals > 0, 65535.0 / max_vals, 0)
+        scale = scale.reshape((1, 1, 3))
+        img = img * scale  # normalize
+        img = img.astype(np.uint16)
         img = 65535 - img # invert to create positive image
         img = self.slide_processing(img) # The rest of the processing is identical to slide_processing
         return img
@@ -335,6 +345,65 @@ class RawProcessing:
         
     def crop_only(self, img):
         # No processing required
+        return img
+    
+    def tonemap_aces(self, E):
+        """
+        Apply the ACES filmic tonemapping curve to a linear exposure image.
+        E: Input linear image (float32), shape (H, W, 3) or (H, W)
+        Returns: Tonemapped image, same shape as input, values in [0, 1]
+        """
+        a = 2.51
+        b = 0.03
+        c = 2.43
+        d = 0.59
+        e = 0.14
+
+        E_clipped = np.clip(E, 0.0, None)  # Ensure non-negative input
+        num = E_clipped * (a * E_clipped + b)
+        den = E_clipped * (c * E_clipped + d) + e
+        return np.clip(num / den, 0.0, 1.0)
+
+    def scientific(self, img):
+        #import pdb; pdb.set_trace()
+         # 1. Convert to float32 and apply vignetting correction
+        img = img.astype(np.float32) / self.vignetting_reference_image * 65535
+
+        # 2. Divide by per-channel constants
+        ref_backlight = (481056, 510088, 510344)
+        divide_array = np.array(ref_backlight, dtype=np.float32).reshape(1, 1, 3)
+        img /= divide_array
+
+        # 3. Apply -log10(x)
+        # Avoid log of zero or negative numbers by clamping
+        img = -np.log10(np.clip(img, 1e-6, None))
+
+        # 4. Subtract per-channel constants
+        ref_unexposed_slide = (62305, 61967, 60920)
+        density_unexposed_slide = tuple(-np.log10(a / b) for a, b in zip(ref_unexposed_slide, ref_backlight))
+        subtract_array = np.array(density_unexposed_slide, dtype=np.float32).reshape(1, 1, 3)
+        img -= subtract_array
+
+        # 5. Apply 10^(x / gamma)
+        gamma = 0.6  # film contrast
+        img = 10 ** (img / gamma) 
+
+        # 6. Normalize
+        # Compute percentile-based min/max to ignore outliers
+        E_min = np.percentile(img, 0.5)
+        E_max = np.percentile(img, 99.5)
+
+        img = np.clip((img - E_min) / (E_max - E_min), 0.0, 1.0)
+
+        # 7. ACES filmic curve
+        img = self.tonemap_aces(img)
+
+        # 8. Apply gamma
+        gamma2 = 2.2
+        img = img ** (1 / gamma2)
+
+        # 9. Scale and convert to 16 bit
+        img = (img * 65535).astype(np.uint16)
         return img
     
     def find_dust(self, img):
