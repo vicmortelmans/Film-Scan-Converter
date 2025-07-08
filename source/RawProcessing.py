@@ -4,6 +4,7 @@ import numpy as np
 from PIL import Image
 import matplotlib.colors
 import os 
+import matplotlib.pyplot as plt
 import tifffile
 
 import logging
@@ -305,6 +306,8 @@ class RawProcessing:
                 img = self.crop_only(img)
             case 4:
                 img = self.scientific(img)
+            case 5:
+                img = self.vignet(img)
 
         self.active_processes -= 1
         if recent_only and (self.active_processes > 0):
@@ -314,6 +317,35 @@ class RawProcessing:
         self.IMG = img
         self.dust_mask = dust_mask
         self.processed = True
+
+    def export_plot(self, img1, img2, filename):
+        # Create scatter plots for each RGB channel
+        fig, axs = plt.subplots(1, 3, figsize=(18, 5))
+        channel_names = ['Red', 'Green', 'Blue']
+        colors = ['red', 'green', 'blue']
+
+        for i in range(3):
+            x = img1[..., i].flatten()
+            y = img2[..., i].flatten()
+            axs[i].scatter(x, y, s=0.5, alpha=0.3, color=colors[i])
+            axs[i].set_title(f'{channel_names[i]} Channel')
+            axs[i].set_xlabel('Image 1 Pixel Value')
+            axs[i].set_ylabel('Image 2 Pixel Value')
+            axs[i].set_xlim(0, 80000)
+            axs[i].set_ylim(0, 65535)
+            axs[i].grid(True)
+
+            # Overlay histogram on secondary y-axis
+            ax_hist = axs[i].twinx()
+            hist_vals, bins = np.histogram(x, bins=256, range=(0, 80000))
+            ax_hist.plot(bins[:-1], hist_vals, color='gray', alpha=0.4, linewidth=1)
+            ax_hist.set_ylabel('Histogram (Image 1)', color='gray')
+            ax_hist.tick_params(axis='y', labelcolor='gray')
+            ax_hist.set_ylim(0, hist_vals.max() * 1.1)
+
+        plt.tight_layout()
+        plt.savefig(f"{filename}_mapping.png", dpi=300)  # Save the plot as a high-resolution PNG
+        plt.close()
 
     def bw_negative_processing(self, img):
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) # converts to b/w
@@ -347,6 +379,23 @@ class RawProcessing:
         # No processing required
         return img
     
+    def vignet(self, img):
+        # Only vignetting correction
+        # 1. Convert to float32 and apply vignetting correction
+        img = img.astype(np.float32) / self.vignetting_reference_image * 65535
+
+        # 6. Normalize
+        # Compute percentile-based min/max to ignore outliers
+        E_min = np.percentile(img, 0.5)
+        E_max = np.percentile(img, 99.5)
+
+        img = np.clip((img - E_min) / (E_max - E_min), 0.0, 1.0)
+
+        # 9. Scale and convert to 16 bit
+        img = (img * 65535).astype(np.uint16)
+
+        return img
+    
     def tonemap_aces(self, E):
         """
         Apply the ACES filmic tonemapping curve to a linear exposure image.
@@ -365,14 +414,14 @@ class RawProcessing:
         return np.clip(num / den, 0.0, 1.0)
 
     def scientific(self, img):
-        #import pdb; pdb.set_trace()
          # 1. Convert to float32 and apply vignetting correction
         img = img.astype(np.float32) / self.vignetting_reference_image * 65535
+        img_original = img  # for plot
 
         # 2. Divide by per-channel constants
         ref_backlight = (481056, 510088, 510344)
         divide_array = np.array(ref_backlight, dtype=np.float32).reshape(1, 1, 3)
-        img /= divide_array
+        img = img / divide_array
 
         # 3. Apply -log10(x)
         # Avoid log of zero or negative numbers by clamping
@@ -382,11 +431,16 @@ class RawProcessing:
         ref_unexposed_slide = (62305, 61967, 60920)
         density_unexposed_slide = tuple(-np.log10(a / b) for a, b in zip(ref_unexposed_slide, ref_backlight))
         subtract_array = np.array(density_unexposed_slide, dtype=np.float32).reshape(1, 1, 3)
-        img -= subtract_array
+        img = img - subtract_array
 
         # 5. Apply 10^(x / gamma)
         gamma = 0.6  # film contrast
         img = 10 ** (img / gamma) 
+
+        #import pdb; pdb.set_trace()
+        # DEBUG 5b. white balance fuji
+        #scales = np.array([0.85, 1.0, 1.45])
+        #img = img / scales
 
         # 6. Normalize
         # Compute percentile-based min/max to ignore outliers
@@ -396,14 +450,18 @@ class RawProcessing:
         img = np.clip((img - E_min) / (E_max - E_min), 0.0, 1.0)
 
         # 7. ACES filmic curve
-        img = self.tonemap_aces(img)
+        #img = self.tonemap_aces(img)
 
         # 8. Apply gamma
-        gamma2 = 2.2
-        img = img ** (1 / gamma2)
+        #gamma2 = 2.2
+        #img = img ** (1 / gamma2)
 
         # 9. Scale and convert to 16 bit
         img = (img * 65535).astype(np.uint16)
+
+        # Export plot
+        self.export_plot(img_original, img, self.file_directory)
+
         return img
     
     def find_dust(self, img):

@@ -49,6 +49,8 @@ def main(filename_red, filename_green, filename_blue, mode="colour", output_form
         film_type = 3
     elif mode == "scientific":
         film_type = 4
+    elif mode == "vignet":
+        film_type = 5
 
     # Prepare settings
     default_settings = dict(
@@ -85,8 +87,8 @@ if __name__ == "__main__":
     # Argument 1: command
     parser.add_argument(
         'mode',
-        choices=['bw', 'colour', 'slide', 'crop', 'scientific'],
-        help='Type of processing to apply (bw, colour, slide, crop, scientific)'
+        choices=['bw', 'colour', 'slide', 'crop', 'vignet', 'scientific'],
+        help='Type of processing to apply (bw, colour, slide, crop, vignet, scientific)'
     )
 
     # Argument 2: output format
