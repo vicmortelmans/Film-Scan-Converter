@@ -1,4 +1,5 @@
 import rawpy
+import csv
 import cv2
 import numpy as np
 from PIL import Image
@@ -388,6 +389,16 @@ class RawProcessing:
         # Compute percentile-based min/max to ignore outliers
         E_min = np.percentile(img, 0.5)
         E_max = np.percentile(img, 99.5)
+
+        # Append E_min to toesmin.csv
+        with open("toesmin.csv", mode='a', newline='') as fmin:
+            writer = csv.writer(fmin)
+            writer.writerow(E_min)
+
+        # Append E_max to toesmax.csv
+        with open("toesmax.csv", mode='a', newline='') as fmax:
+            writer = csv.writer(fmax)
+            writer.writerow(E_max)
 
         img = np.clip((img - E_min) / (E_max - E_min), 0.0, 1.0)
 
