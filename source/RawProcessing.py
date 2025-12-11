@@ -357,13 +357,20 @@ class RawProcessing:
         return img
 
     def colour_negative_processing(self, img):
-        img = img / self.vignetting_reference_image * 65535  # order is important!
+        # 1. Convert to float32 and apply vignetting correction 
+        img = img.astype(np.float32) / self.vignetting_reference_image * 65535
+
+        # 2. Scale down to 16 bits range
         max_vals = np.max(img, axis=(0, 1))  # maybe higher than 65535
         scale = np.where(max_vals > 0, 65535.0 / max_vals, 0)
         scale = scale.reshape((1, 1, 3))
         img = img * scale  # normalize
         img = img.astype(np.uint16)
-        img = 65535 - img # invert to create positive image
+
+        # 3. invert to create positive image
+        img = 65535 - img
+
+        # 4. continue 
         img = self.slide_processing(img) # The rest of the processing is identical to slide_processing
         return img
     
@@ -598,21 +605,33 @@ class RawProcessing:
         else:
             sample = np.s_[y:-y, x:-x]
 
-        if self.base_detect and (self.film_type == 1 or self.film_type == 2):
+        if self.base_detect and (self.film_type == 1 or self.film_type == 2):  # self.base_detect is 0; 1 = color; 2 = slide
             if self.film_type == 1:
                 black_point = 65535 - np.array(self.base_rgb, np.uint16)[::-1] * 256
             else:
                 black_point = np.array(self.base_rgb, np.uint16)[::-1] * 256
         else:
             black_point = np.percentile(img[sample], self.black_point_percentile, (0,1))
-        black_offsets = self.black_point / 100 * sensitivity * 65535 - black_point
+        black_offsets = self.black_point / 100 * sensitivity * 65535 - black_point  # self.black_point is 0
         img = img.astype(np.float32, copy=False)
         img[:,:] = img[:,:] + black_offsets # Sets the black point
 
         max_array = np.ones_like(black_offsets)
         white_point = np.percentile(img[sample], self.white_point_percentile, (0,1))
-        white_multipliers = np.divide(65535 + self.white_point / 100 * sensitivity * 65535, white_point, out=max_array, where=white_point>0) # division, but ignore divide by zero or negative
+        white_multipliers = np.divide(65535 + self.white_point / 100 * sensitivity * 65535, white_point, out=max_array, where=white_point>0) # division, but ignore divide by zero or negative; self.white_point is 0
         img = np.multiply(img, white_multipliers) # Scales the white percentile to 65535
+
+        if (self.film_type == 1 or self.film_type == 2):
+            # Append E_min to toesmin.csv
+            with open("toesmin.csv", mode='a', newline='') as fmin:
+                writer = csv.writer(fmin)
+                writer.writerow(black_point)
+
+            # Append E_max to toesmax.csv
+            with open("toesmax.csv", mode='a', newline='') as fmax:
+                writer = csv.writer(fmax)
+                writer.writerow(black_point + white_point)
+
         return img
     
     # \/ Three different white balance functions experimented with \/
